@@ -128,63 +128,6 @@ func main() {
 	}
 }
 
-func NewStationSearch() stationSearch {
-	return stationSearch{
-		input: textinput.New(),
-	}
-}
-
-type stationSearch struct {
-	input textinput.Model
-}
-
-func (m stationSearch) Update(msg tea.Msg) (CurrentModel, tea.Cmd) {
-	if !m.input.Focused() {
-		m.input.Focus()
-	}
-	if msg, ok := msg.(tea.KeyMsg); ok && msg.String() == "enter" {
-		stops := rejseplan.GetStops(m.input.Value())
-		if len(stops) > 1 {
-			return m, nil
-		}
-		return m, tea.Quit
-	}
-	var cmd tea.Cmd
-	m.input, cmd = m.input.Update(msg)
-	return m, cmd
-}
-
-func (m stationSearch) View() string {
-	return "Find stop " + m.input.View()
-}
-
-func newStopList(stops []rejseplan.Stop) stopList {
-	return stopList{stops: stops}
-}
-
-type stopList struct {
-	stops []rejseplan.Stop
-}
-
-type listDepartures struct {
-}
-
-func (m listDepartures) Update(msg tea.Msg) (CurrentModel, tea.Cmd) {
-	return m, nil
-}
-
-func (m listDepartures) View() string {
-	return ""
-}
-
-type item struct {
-	rejseplan.Stop
-}
-
-func (i item) FilterValue() string {
-	return i.Stop.Name
-}
-
 func mapDepartures(departures []rejseplan.Departure) [][]string {
 	var output [][]string
 	for _, departure := range departures {
