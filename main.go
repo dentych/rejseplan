@@ -26,12 +26,12 @@ const (
 type Model struct {
 	currentModel CurrentModel
 	step         Step
-	stops        []rejseplan.StopLocation
-	chosenStop   rejseplan.StopLocation
+	stops        []rejseplan.Stop
+	chosenStop   rejseplan.Stop
 	departures   []rejseplan.Departure
 
 	input textinput.Model
-	list  simplelist.Model
+	list  simplelist.Model[rejseplan.Stop]
 	table *table.Table
 
 	error string
@@ -72,7 +72,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.step = StepTwo
 				m.stops = stops
 				m.input.Reset()
-				m.list = simplelist.Model{Items: m.stops}
+				m.list = simplelist.Model[rejseplan.Stop]{Items: m.stops}
 				return m, nil
 			} else {
 				m.error = "No stops found"
@@ -158,12 +158,12 @@ func (m stationSearch) View() string {
 	return "Find stop " + m.input.View()
 }
 
-func newStopList(stops []rejseplan.StopLocation) stopList {
+func newStopList(stops []rejseplan.Stop) stopList {
 	return stopList{stops: stops}
 }
 
 type stopList struct {
-	stops []rejseplan.StopLocation
+	stops []rejseplan.Stop
 }
 
 type listDepartures struct {
@@ -178,11 +178,11 @@ func (m listDepartures) View() string {
 }
 
 type item struct {
-	rejseplan.StopLocation
+	rejseplan.Stop
 }
 
 func (i item) FilterValue() string {
-	return i.StopLocation.Name
+	return i.Stop.Name
 }
 
 func mapDepartures(departures []rejseplan.Departure) [][]string {
@@ -193,7 +193,7 @@ func mapDepartures(departures []rejseplan.Departure) [][]string {
 	return output
 }
 
-func mapStopsToItems(stops []rejseplan.StopLocation) []string {
+func mapStopsToItems(stops []rejseplan.Stop) []string {
 	var output []string
 	for i := range stops {
 		output = append(output, stops[i].Name)

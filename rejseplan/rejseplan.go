@@ -10,7 +10,7 @@ import (
 
 var baseUrl = "http://xmlopen.rejseplanen.dk/bin/rest.exe"
 
-func GetStops(input string) []StopLocation {
+func GetStops(input string) []Stop {
 	resp, err := http.DefaultClient.Get(baseUrl + "/location?format=json&input=" + url.QueryEscape(input))
 	if err != nil {
 		panic(err)
@@ -27,14 +27,14 @@ func GetStops(input string) []StopLocation {
 		panic(err)
 	}
 
-	var output []StopLocation
+	var output []Stop
 	if bytes.HasPrefix(response.LocationList.StopLocation, []byte("{")) {
-		var stopLocation StopLocation
-		err = json.Unmarshal(response.LocationList.StopLocation, &stopLocation)
+		var stop Stop
+		err = json.Unmarshal(response.LocationList.StopLocation, &stop)
 		if err != nil {
 			panic(err)
 		}
-		output = []StopLocation{stopLocation}
+		output = []Stop{stop}
 	} else {
 		err = json.Unmarshal(response.LocationList.StopLocation, &output)
 		if err != nil {
@@ -45,7 +45,7 @@ func GetStops(input string) []StopLocation {
 	return output
 }
 
-func GetDepartures(selectedStop StopLocation) []Departure {
+func GetDepartures(selectedStop Stop) []Departure {
 	resp, err := http.DefaultClient.Get(baseUrl + "/departureBoard?format=json&id=" + selectedStop.ID)
 	if err != nil {
 		panic(err)

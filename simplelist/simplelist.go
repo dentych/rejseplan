@@ -2,17 +2,20 @@ package simplelist
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/dentych/rejseplan/rejseplan"
 )
 
-type Model struct {
-	Items []rejseplan.StopLocation
+type Item interface {
+	Title() string
+}
+
+type Model[T Item] struct {
+	Items []T
 
 	currentChoice int
 }
 
 // Update implements tea.Model.
-func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+func (m Model[T]) Update(msg tea.Msg) (Model[T], tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -32,7 +35,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 // View implements tea.Model.
-func (m Model) View() string {
+func (m Model[T]) View() string {
 	var output string
 	for i, item := range m.Items {
 		if i == m.currentChoice {
@@ -41,12 +44,12 @@ func (m Model) View() string {
 			output += "  "
 		}
 
-		output += item.Name + "\n"
+		output += item.Title() + "\n"
 	}
 
 	return output
 }
 
-func (m Model) Current() rejseplan.StopLocation {
+func (m Model[T]) Current() T {
 	return m.Items[m.currentChoice]
 }

@@ -10,9 +10,13 @@ type LocationList struct {
 	StopLocation json.RawMessage
 }
 
-type StopLocation struct {
+type Stop struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
+}
+
+func (s Stop) Title() string {
+	return s.Name
 }
 
 type DepartureResponse struct {
