@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/dentych/rejseplan/rejseplan"
+	"github.com/dentych/rejseplan/simplelist"
 )
 
 type CurrentModel interface {
@@ -16,9 +17,9 @@ type CurrentModel interface {
 type Step int
 
 const (
-	StepFirst Step = iota
-	StepSecond
-	StepThird
+	StepOne Step = iota
+	StepTwo
+	StepThree
 	StepError
 )
 
@@ -30,8 +31,8 @@ type Model struct {
 	departures   []rejseplan.Departure
 
 	input textinput.Model
-	list  list.Model
-	table table.Model
+	list  simplelist.Model
+	table *table.Table
 
 	error string
 }
@@ -57,23 +58,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	switch m.step {
-	case StepFirst:
+	case StepOne:
 		if !m.input.Focused() {
 			return m, m.input.Focus()
 		}
 		if keymsg, ok := msg.(tea.KeyMsg); ok && keymsg.String() == "enter" {
 			stops := rejseplan.GetStops(m.input.Value())
 			if len(stops) == 1 {
-				m.step = StepThird
+				m.step = StepThree
 				m.chosenStop = stops[0]
 				return m, nil
 			} else if len(stops) > 1 {
-				m.step = StepSecond
+				m.step = StepTwo
 				m.stops = stops
 				m.input.Reset()
-				defaultDelegate := list.NewDefaultDelegate()
-				defaultDelegate.ShowDescription = false
-				m.list = list.New(mapStopsToItems(stops), defaultDelegate, 70, 10)
+				m.list = simplelist.Model{Items: m.stops}
 				return m, nil
 			} else {
 				m.error = "No stops found"
@@ -83,20 +82,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.input, cmd = m.input.Update(msg)
 		return m, cmd
-	case StepSecond:
-
+	case StepTwo:
+		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
+			m.chosenStop = m.list.Current()
+			m.step = StepThree
+			m.departures = rejseplan.GetDepartures(m.chosenStop)
+			m.table = table.New().Border(lipgloss.NormalBorder()).
+				BorderLeft(false).BorderRight(false).BorderTop(false).BorderBottom(false).
+				Headers("LINE", "DIRECTION", "TIME").
+				Rows(mapDepartures(m.departures)...)
+			return m, tea.Quit
+		}
+		m.list, cmd = m.list.Update(msg)
+		return m, cmd
 	}
 
 	// m.currentModel, cmd = m.currentModel.Update(msg)
 	return m, cmd
-}
-
-func mapStopsToItems(stops []rejseplan.StopLocation) []list.Item {
-	var output []list.Item
-	for i := range stops {
-		output = append(output, item{stops[i]})
-	}
-	return output
 }
 
 func (m Model) View() string {
@@ -105,14 +107,14 @@ func (m Model) View() string {
 	}
 
 	switch m.step {
-	case StepFirst:
+	case StepOne:
 		return "Find stop " + m.input.View()
-	case StepSecond:
-		var output string
-		for _, stop := range m.stops {
-			output += stop.Name + "\n"
-		}
-		return output
+	case StepTwo:
+		s := lipgloss.NewStyle().Background(lipgloss.Color("#140c7d")).Foreground(lipgloss.Color("#fff")).MarginLeft(2).Padding(1).Render("Choose a stop")
+		s2 := lipgloss.NewStyle().MarginTop(1).Render(m.list.View())
+		return lipgloss.JoinVertical(lipgloss.Top, s, s2)
+	case StepThree:
+		return m.table.Render() + "\n"
 	}
 	// return m.currentModel.View()
 	return ""
@@ -181,4 +183,20 @@ type item struct {
 
 func (i item) FilterValue() string {
 	return i.StopLocation.Name
+}
+
+func mapDepartures(departures []rejseplan.Departure) [][]string {
+	var output [][]string
+	for _, departure := range departures {
+		output = append(output, []string{departure.Line, departure.Direction, departure.PlannedTime})
+	}
+	return output
+}
+
+func mapStopsToItems(stops []rejseplan.StopLocation) []string {
+	var output []string
+	for i := range stops {
+		output = append(output, stops[i].Name)
+	}
+	return output
 }
